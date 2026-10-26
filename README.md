@@ -10,8 +10,8 @@ Solution .NET 10 en deux parties, déployées dans **un seul container** :
 ## Développement
 
 ```bash
-dotnet run --project KeldresAuction.Api    # http://localhost:5100
-dotnet run --project KeldresAuction.Front  # http://localhost:5200 (appelle l'API sur 5100, CORS ouvert en Development)
+dotnet run --project src/KeldresAuction.Api    # http://localhost:5100
+dotnet run --project src/KeldresAuction.Front  # http://localhost:5200 (appelle l'API sur 5100, CORS ouvert en Development)
 dotnet test KeldresAuction.slnx
 ```
 

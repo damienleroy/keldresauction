@@ -2,16 +2,16 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY Directory.Build.props Directory.Packages.props nuget.config ./
-COPY KeldresAuction.Api/KeldresAuction.Api.csproj KeldresAuction.Api/
-COPY KeldresAuction.Front/KeldresAuction.Front.csproj KeldresAuction.Front/
-RUN dotnet restore KeldresAuction.Api/KeldresAuction.Api.csproj \
- && dotnet restore KeldresAuction.Front/KeldresAuction.Front.csproj
+COPY src/KeldresAuction.Api/KeldresAuction.Api.csproj src/KeldresAuction.Api/
+COPY src/KeldresAuction.Front/KeldresAuction.Front.csproj src/KeldresAuction.Front/
+RUN dotnet restore src/KeldresAuction.Api/KeldresAuction.Api.csproj \
+ && dotnet restore src/KeldresAuction.Front/KeldresAuction.Front.csproj
 
-COPY KeldresAuction.Api/ KeldresAuction.Api/
-COPY KeldresAuction.Front/ KeldresAuction.Front/
-RUN dotnet publish KeldresAuction.Api/KeldresAuction.Api.csproj \
+COPY src/KeldresAuction.Api/ src/KeldresAuction.Api/
+COPY src/KeldresAuction.Front/ src/KeldresAuction.Front/
+RUN dotnet publish src/KeldresAuction.Api/KeldresAuction.Api.csproj \
     -c Release -o /app/publish --no-restore
-RUN dotnet publish KeldresAuction.Front/KeldresAuction.Front.csproj \
+RUN dotnet publish src/KeldresAuction.Front/KeldresAuction.Front.csproj \
     -c Release -o /app/front --no-restore
 
 # One container: the API host also serves the published Blazor WebAssembly front.

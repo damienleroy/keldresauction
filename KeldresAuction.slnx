@@ -10,9 +10,9 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="KeldresAuction.Api.Tests/KeldresAuction.Api.Tests.csproj" />
-    <Project Path="KeldresAuction.Front.Tests/KeldresAuction.Front.Tests.csproj" />
+    <Project Path="src/KeldresAuction.Api.Tests/KeldresAuction.Api.Tests.csproj" />
+    <Project Path="src/KeldresAuction.Front.Tests/KeldresAuction.Front.Tests.csproj" />
   </Folder>
-  <Project Path="KeldresAuction.Api/KeldresAuction.Api.csproj" />
-  <Project Path="KeldresAuction.Front/KeldresAuction.Front.csproj" />
+  <Project Path="src/KeldresAuction.Api/KeldresAuction.Api.csproj" />
+  <Project Path="src/KeldresAuction.Front/KeldresAuction.Front.csproj" />
 </Solution>
