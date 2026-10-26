@@ -1,0 +1,35 @@
+# Local stack: `docker compose up -d --build` runs PostgreSQL and the app (http://localhost:9093).
+# `docker compose up -d postgres` starts only the database, for `dotnet run` development.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: keldresauction-postgres
+    environment:
+      POSTGRES_DB: keldresauction
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - keldresauction-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d keldresauction"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    container_name: keldresauction
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__keldresauction: Host=postgres;Database=keldresauction;Username=postgres;Password=postgres
+      # Optional: export traces, metrics and logs to an OpenTelemetry collector.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    ports:
+      - "9093:8080"
+
+volumes:
+  keldresauction-postgres-data:

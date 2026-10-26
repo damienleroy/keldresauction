@@ -29,10 +29,17 @@ Avec une réserve de 100, E gagne et paie 130.
 
 API : `POST /api/auctions` (multipart : `File` + `ReservePrice`), `GET /api/auctions/latest`, `GET /api/auctions/{id}`, `GET /api/auctions/{id}/result`.
 
+## Lancer toute la stack en local
+
+```bash
+docker compose up -d --build   # PostgreSQL + l'application sur http://localhost:9093
+docker compose down            # arrêt (ajouter -v pour supprimer aussi les données)
+```
+
 ## Développement
 
 ```bash
-docker compose -f compose.dev.yaml up -d      # PostgreSQL local (port 5433)
+docker compose up -d postgres                # PostgreSQL local (port 5433)
 dotnet run --project src/KeldresAuction.Api    # http://localhost:5100
 dotnet run --project src/KeldresAuction.Front  # http://localhost:5200 (appelle l'API sur 5100, CORS ouvert en Development)
 dotnet test KeldresAuction.slnx                # nécessite Docker (Testcontainers)
