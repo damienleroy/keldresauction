@@ -5,7 +5,8 @@ using KeldresAuction.Api.Features.Hello;
 
 namespace KeldresAuction.Api.Tests;
 
-public class HelloTests(ApiFactory factory) : IClassFixture<ApiFactory>
+[Collection("Api")]
+public class HelloTests(ApiFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 

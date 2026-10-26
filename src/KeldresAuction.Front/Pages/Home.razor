@@ -1,41 +1,160 @@
 @page "/"
-@inject HttpClient Http
+@using KeldresAuction.Front.Models
+@using KeldresAuction.Front.Services
+@inject AuctionApiClient Api
+@inject AuctionCsvGenerator Generator
 
 <PageTitle>Keldres Auction</PageTitle>
 
-<h1>Keldres Auction</h1>
+<div class="stack">
+    <h1>Enchère à pli fermé au second prix</h1>
 
-<FluentCard Padding="Padding.All4">
-    @if (error is not null)
-    {
-        <p role="alert">API error: @error</p>
-    }
-    else if (message is null)
-    {
-        <FluentProgressBar />
-    }
-    else
-    {
-        <p id="api-message">@message</p>
-    }
-</FluentCard>
+    <FluentCard Padding="Padding.All4">
+        <div class="stack">
+            <h2>Enchères</h2>
+
+            <FluentNumberInput TValue="decimal" @bind-Value="reservePrice" Label="Prix de réserve" Min="0" Step="1" />
+
+            <FluentInputFile Mode="InputFileMode.Stream"
+                             Accept=".csv,text/csv"
+                             MaximumFileSize="@MaxCsvBytes"
+                             AnchorId="csv-browse"
+                             Disabled="@busy"
+                             OnFileUploaded="@OnFileUploadedAsync"
+                             OnFileError="@OnFileError">
+                <label for="csv-browse">Déposez un fichier CSV ici ou cliquez pour le parcourir</label>
+            </FluentInputFile>
+
+            <p class="hint">
+                Format du CSV : un enchérisseur par ligne, son nom puis ses offres, séparés par des virgules
+                (ex. <code>Alice,110,130</code>).
+            </p>
+
+            <div>
+                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@busy" OnClick="@GenerateSampleAsync">
+                    Générer un exemple
+                </FluentButton>
+            </div>
+
+            @foreach (var error in errors)
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Error">@error</FluentMessageBar>
+            }
+
+            @if (loading)
+            {
+                <FluentProgressBar />
+            }
+            else if (auction is null)
+            {
+                <p id="no-bids">Aucune enchère pour le moment.</p>
+            }
+            else
+            {
+                <p>Prix de réserve : <strong>@auction.ReservePrice.ToString("N2")</strong></p>
+                <FluentDataGrid Items="@auction.Bids.AsQueryable()" id="bids-grid">
+                    <PropertyColumn Property="@(b => b.Bidder)" Title="Enchérisseur" />
+                    <PropertyColumn Property="@(b => b.Amount)" Title="Offre" Format="N2" />
+                </FluentDataGrid>
+            }
+        </div>
+    </FluentCard>
+
+    <FluentCard Padding="Padding.All4">
+        <div class="stack">
+            <h2>Résultat</h2>
+
+            @if (result is null)
+            {
+                <p id="no-result">Importez un fichier CSV pour calculer le résultat.</p>
+            }
+            else if (result.Winner is null)
+            {
+                <FluentMessageBar Intent="MessageBarIntent.Warning">
+                    Pas de gagnant : aucune offre n'atteint le prix de réserve (@result.ReservePrice.ToString("N2")).
+                </FluentMessageBar>
+            }
+            else
+            {
+                <p>Gagnant : <strong id="winner">@result.Winner</strong></p>
+                <p>Prix payé : <strong id="winning-price">@result.WinningPrice!.Value.ToString("N2")</strong></p>
+            }
+        </div>
+    </FluentCard>
+</div>
 
 @code {
-    private string? message;
-    private string? error;
+    private const long MaxCsvBytes = 1024 * 1024;
 
-    private sealed record HelloResponse(string Message);
+    private decimal reservePrice = 100;
+    private AuctionDto? auction;
+    private AuctionResultDto? result;
+    private IReadOnlyList<string> errors = [];
+    private bool loading = true;
+    private bool busy;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<HelloResponse>("api/hello");
-            message = response?.Message ?? string.Empty;
+            auction = await Api.GetLatestAsync();
+            if (auction is not null)
+            {
+                reservePrice = auction.ReservePrice;
+                result = await Api.GetResultAsync(auction.Id);
+            }
         }
         catch (HttpRequestException ex)
         {
-            error = ex.Message;
+            errors = [$"Impossible de joindre l'API : {ex.Message}"];
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task OnFileUploadedAsync(FluentInputFileEventArgs file)
+    {
+        // The stream is only valid during the callback, so read it right away.
+        using var reader = new StreamReader(file.Stream!);
+        var csv = await reader.ReadToEndAsync();
+
+        await RunAsync(() => Api.UploadCsvAsync(csv, reservePrice));
+    }
+
+    private void OnFileError(FluentInputFileErrorEventArgs error) =>
+        errors = [$"Fichier refusé : {error.ErrorMessage}"];
+
+    private Task GenerateSampleAsync() => RunAsync(() => Generator.GenerateAndSendAsync(reservePrice));
+
+    // Sends a CSV to the API, then shows the created auction and its result.
+    private async Task RunAsync(Func<Task<UploadOutcome>> send)
+    {
+        busy = true;
+        errors = [];
+        StateHasChanged();
+
+        try
+        {
+            var outcome = await send();
+            if (outcome.Auction is { } created)
+            {
+                auction = created;
+                result = await Api.GetResultAsync(created.Id);
+            }
+            else
+            {
+                errors = outcome.Errors;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            errors = [$"Impossible de joindre l'API : {ex.Message}"];
+        }
+        finally
+        {
+            busy = false;
         }
     }
 }

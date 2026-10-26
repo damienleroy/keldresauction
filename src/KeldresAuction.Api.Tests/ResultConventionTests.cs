@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace KeldresAuction.Api.Tests;
 
 // Checks that Result<T> failures returned by controller actions are translated into the right HTTP status.
-public class ResultConventionTests(ApiFactory factory) : IClassFixture<ApiFactory>
+[Collection("Api")]
+public class ResultConventionTests(ApiFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 

@@ -1,6 +1,14 @@
+using System.Globalization;
 using Ardalis.Result.AspNetCore;
+using KeldresAuction.Api.Domain;
+using KeldresAuction.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
+
+// The API speaks the invariant culture ('.' decimal separator), whatever the host machine's culture is.
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +19,16 @@ builder.Services.AddControllers(options => options.AddDefaultResultConvention())
 builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+
+// PostgreSQL through EF Core. The connection string is resolved lazily so it can be overridden
+// by configuration set after startup (integration tests).
+builder.Services.AddDbContext<AuctionDbContext>((serviceProvider, options) => options
+    .UseNpgsql(serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("keldresauction"))
+    .UseSnakeCaseNamingConvention());
+builder.Services.AddScoped<IAuctionRepository, AuctionRepository>();
+builder.Services.AddSingleton(TimeProvider.System);
+// Readiness only: the "live" check used by /alive stays independent from the database.
+builder.Services.AddHealthChecks().AddDbContextCheck<AuctionDbContext>("database");
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -26,6 +44,12 @@ builder.Services.AddCors(options => options.AddPolicy(DevCorsPolicy, policy => p
     .AllowAnyMethod()));
 
 var app = builder.Build();
+
+// Apply pending EF Core migrations at startup.
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    await scope.ServiceProvider.GetRequiredService<AuctionDbContext>().Database.MigrateAsync();
+}
 
 app.UseExceptionHandler();
 app.UseForwardedHeaders();

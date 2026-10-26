@@ -6,6 +6,7 @@
     <File Path="deploy.ps1" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
+    <File Path="compose.dev.yaml" />
     <File Path="Dockerfile" />
     <File Path="README.md" />
   </Folder>

@@ -45,6 +45,7 @@ $envLines = @(
 	'ASPNETCORE_ENVIRONMENT=Integration'
 	'DOTNET_ENVIRONMENT=Integration'
 )
+$envLines += "ConnectionStrings__keldresauction=$(Get-EnvValue -Name 'CONNECTIONSTRING_KELDRESAUCTION' -Required)"
 $otlpEndpoint = Get-EnvValue -Name 'OTEL_EXPORTER_OTLP_ENDPOINT'
 if (-not [string]::IsNullOrWhiteSpace($otlpEndpoint)) {
 	$envLines += "OTEL_EXPORTER_OTLP_ENDPOINT=$otlpEndpoint"

@@ -10,6 +10,31 @@ html, body {
 
 .app-content {
     padding: var(--spacingHorizontalXL);
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacingVerticalL);
+}
+
+.stack h1, .stack h2, .stack p {
+    margin: 0;
+}
+
+.stack h1 {
+    font-size: var(--fontSizeHero700);
+}
+
+.stack h2 {
+    font-size: var(--fontSizeBase500);
+}
+
+.hint {
+    color: var(--colorNeutralForeground3);
+    font-size: var(--fontSizeBase200);
 }
 
 #blazor-error-ui {

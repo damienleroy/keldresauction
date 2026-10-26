@@ -50,12 +50,14 @@ jobs:
 
       - name: Create environment file
         env:
+          CONNECTIONSTRING_KELDRESAUCTION: ${{ secrets.CONNECTIONSTRING_KELDRESAUCTION }}
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.OTEL_EXPORTER_OTLP_ENDPOINT }}
         run: |
           ENV_FILE="/tmp/keldresauction_${SERVICE}.env"
 
           echo "ASPNETCORE_ENVIRONMENT=Integration" > "$ENV_FILE"
           echo "DOTNET_ENVIRONMENT=Integration" >> "$ENV_FILE"
+          echo "ConnectionStrings__keldresauction=${CONNECTIONSTRING_KELDRESAUCTION}" >> "$ENV_FILE"
           echo "OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}" >> "$ENV_FILE"
 
       - name: Deploy container on server

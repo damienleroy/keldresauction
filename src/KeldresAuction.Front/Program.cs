@@ -1,4 +1,5 @@
 using KeldresAuction.Front;
+using KeldresAuction.Front.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -14,6 +15,9 @@ builder.Services.AddScoped(_ => new HttpClient
 {
     BaseAddress = new Uri(string.IsNullOrWhiteSpace(apiBaseUrl) ? builder.HostEnvironment.BaseAddress : apiBaseUrl)
 });
+
+builder.Services.AddScoped<AuctionApiClient>();
+builder.Services.AddScoped<AuctionCsvGenerator>();
 
 builder.Services.AddFluentUIComponents();
 

@@ -55,12 +55,14 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
+                    .AddMeter("Npgsql")
                     .AddProcessInstrumentation()
                     .AddRuntimeInstrumentation();
             })
             .WithTracing(tracing =>
             {
-                tracing.AddSource(builder.Environment.ApplicationName)
+                // "Npgsql" is the ActivitySource emitted natively by the PostgreSQL driver (EF Core queries).
+                tracing.AddSource(builder.Environment.ApplicationName, "Npgsql")
                     .AddAspNetCoreInstrumentation(options =>
                         // Exclude health check requests from tracing
                         options.Filter = context =>
