@@ -1,6 +1,7 @@
 using KeldresAuction.Front;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -13,5 +14,7 @@ builder.Services.AddScoped(_ => new HttpClient
 {
     BaseAddress = new Uri(string.IsNullOrWhiteSpace(apiBaseUrl) ? builder.HostEnvironment.BaseAddress : apiBaseUrl)
 });
+
+builder.Services.AddFluentUIComponents();
 
 await builder.Build().RunAsync();

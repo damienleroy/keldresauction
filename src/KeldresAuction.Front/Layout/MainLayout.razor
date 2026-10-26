@@ -1,5 +1,16 @@
 @inherits LayoutComponentBase
 
-<main>
-    @Body
-</main>
+@* Required once at the root: overlay containers for dialogs, tooltips and keyboard shortcuts. *@
+<FluentProviders />
+
+<FluentLayout>
+    <FluentLayoutItem Area="LayoutArea.Header">
+        <span class="app-title">Keldres Auction</span>
+    </FluentLayoutItem>
+
+    <FluentLayoutItem Area="LayoutArea.Content">
+        <main class="app-content">
+            @Body
+        </main>
+    </FluentLayoutItem>
+</FluentLayout>
