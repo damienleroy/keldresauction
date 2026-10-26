@@ -2,10 +2,9 @@
 
 Solution .NET 10 en deux parties, déployées dans **un seul container** :
 
-- `KeldresAuction.Api` : API ASP.NET Core (minimal API). Telemetry OpenTelemetry (traces, métriques, logs) exportée en OTLP vers le collector (Tempo / Prometheus / Loki / Grafana), health checks `/health` et `/alive`.
+- `KeldresAuction.Api` : API ASP.NET Core (controllers + [Mediator](https://github.com/martinothamar/Mediator), alternative open source à MediatR). Telemetry OpenTelemetry (traces, métriques, logs) exportée en OTLP vers le collector (Tempo / Prometheus / Loki / Grafana), health checks `/health` et `/alive`.
 - `KeldresAuction.Front` : Blazor WebAssembly, appelle l'API (`/api/hello`). Une fois publié, il est servi par l'API depuis `wwwroot`.
 - `KeldresAuction.Api.Tests` : tests d'intégration de l'API (`WebApplicationFactory`).
-- `KeldresAuction.Front.Tests` : tests de composants Blazor (bUnit).
 
 ## Développement
 

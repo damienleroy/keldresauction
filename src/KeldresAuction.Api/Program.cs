@@ -6,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Service defaults: OpenTelemetry (traces, metrics, logs), health checks, resilience.
 builder.AddServiceDefaults();
 
+builder.Services.AddControllers();
+builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -34,8 +36,7 @@ if (app.Environment.IsDevelopment())
     app.UseCors(DevCorsPolicy);
 }
 
-app.MapGet("/api/hello", () => new HelloResponse("Hello World from KeldresAuction API"))
-    .WithName("Hello");
+app.MapControllers();
 
 // Unknown API routes must stay 404 instead of falling back to the Blazor index.html.
 app.Map("/api/{**rest}", () => Results.NotFound());
@@ -49,8 +50,6 @@ app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = contentTypes })
 app.MapFallbackToFile("index.html");
 
 app.Run();
-
-public sealed record HelloResponse(string Message);
 
 // Exposed for WebApplicationFactory<Program> in the integration tests.
 public partial class Program;

@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 
+using KeldresAuction.Api.Features.Hello;
+
 namespace KeldresAuction.Api.Tests;
 
 public class HelloTests(ApiFactory factory) : IClassFixture<ApiFactory>

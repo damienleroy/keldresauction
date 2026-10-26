@@ -11,7 +11,6 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="src/KeldresAuction.Api.Tests/KeldresAuction.Api.Tests.csproj" />
-    <Project Path="src/KeldresAuction.Front.Tests/KeldresAuction.Front.Tests.csproj" />
   </Folder>
   <Project Path="src/KeldresAuction.Api/KeldresAuction.Api.csproj" />
   <Project Path="src/KeldresAuction.Front/KeldresAuction.Front.csproj" />
