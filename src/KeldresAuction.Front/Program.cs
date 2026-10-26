@@ -1,8 +1,14 @@
+using System.Globalization;
 using KeldresAuction.Front;
 using KeldresAuction.Front.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.FluentUI.AspNetCore.Components;
+
+// The UI is in English: format numbers accordingly, whatever the browser's language is.
+var culture = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

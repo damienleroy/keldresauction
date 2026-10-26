@@ -6,80 +6,124 @@
 
 <PageTitle>Keldres Auction</PageTitle>
 
-<div class="stack">
-    <h1>Enchère à pli fermé au second prix</h1>
+<div class="page">
+    <header class="hero">
+        <h1>Sealed-bid second-price auction</h1>
+        <p class="lead">
+            The highest bid at or above the reserve price wins, but the winner pays the highest qualifying bid
+            placed by <em>another</em> bidder, or the reserve price when there is none.
+        </p>
+    </header>
 
-    <FluentCard Padding="Padding.All4">
-        <div class="stack">
-            <h2>Enchères</h2>
-
-            <FluentNumberInput TValue="decimal" @bind-Value="reservePrice" Label="Prix de réserve" Min="0" Step="1" />
-
-            <FluentInputFile Mode="InputFileMode.Stream"
-                             Accept=".csv,text/csv"
-                             MaximumFileSize="@MaxCsvBytes"
-                             AnchorId="csv-browse"
-                             Disabled="@busy"
-                             OnFileUploaded="@OnFileUploadedAsync"
-                             OnFileError="@OnFileError">
-                <label for="csv-browse">Déposez un fichier CSV ici ou cliquez pour le parcourir</label>
-            </FluentInputFile>
-
-            <p class="hint">
-                Format du CSV : un enchérisseur par ligne, son nom puis ses offres, séparés par des virgules
-                (ex. <code>Alice,110,130</code>).
-            </p>
-
-            <div>
-                <FluentButton Appearance="ButtonAppearance.Outline" Disabled="@busy" OnClick="@GenerateSampleAsync">
-                    Générer un exemple
-                </FluentButton>
-            </div>
-
-            @foreach (var error in errors)
-            {
-                <FluentMessageBar Intent="MessageBarIntent.Error">@error</FluentMessageBar>
-            }
-
-            @if (loading)
-            {
-                <FluentProgressBar />
-            }
-            else if (auction is null)
-            {
-                <p id="no-bids">Aucune enchère pour le moment.</p>
-            }
-            else
-            {
-                <p>Prix de réserve : <strong>@auction.ReservePrice.ToString("N2")</strong></p>
-                <FluentDataGrid Items="@auction.Bids.AsQueryable()" id="bids-grid">
-                    <PropertyColumn Property="@(b => b.Bidder)" Title="Enchérisseur" />
-                    <PropertyColumn Property="@(b => b.Amount)" Title="Offre" Format="N2" />
-                </FluentDataGrid>
-            }
+    <FluentCard Class="panel" Padding="Padding.All5">
+        <div class="panel-header">
+            <FluentIcon Value="@(new Icons.Regular.Size24.DocumentTable())" />
+            <h2>Bids</h2>
         </div>
+
+        <div class="controls">
+            <FluentNumberInput TValue="decimal" @bind-Value="reservePrice" Label="Reserve price" Min="0" Step="1" />
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          IconStart="@(new Icons.Regular.Size20.Sparkle())"
+                          Disabled="@busy"
+                          OnClick="@GenerateSampleAsync">
+                Generate a sample
+            </FluentButton>
+        </div>
+
+        <FluentInputFile Mode="InputFileMode.Stream"
+                         Accept=".csv,text/csv"
+                         MaximumFileSize="@MaxCsvBytes"
+                         AnchorId="csv-browse"
+                         Class="dropzone"
+                         Height="110px"
+                         Disabled="@busy"
+                         OnFileUploaded="@OnFileUploadedAsync"
+                         OnFileError="@OnFileError">
+            <label for="csv-browse">Drop a CSV file here or <u>browse</u></label>
+        </FluentInputFile>
+
+        <p class="hint">
+            One bidder per line: the name, then that bidder's bids, separated by commas
+            (e.g. <code>Alice,110,130</code>). Use <code>.</code> as the decimal separator.
+        </p>
+
+        @foreach (var error in errors)
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Error">@error</FluentMessageBar>
+        }
+
+        @if (loading)
+        {
+            <FluentProgressBar />
+        }
+        else if (auction is null)
+        {
+            <div id="no-bids" class="empty">
+                <FluentIcon Value="@(new Icons.Regular.Size24.DocumentTable())" />
+                <p>No bids yet. Upload a CSV file or generate a sample to get started.</p>
+            </div>
+        }
+        else
+        {
+            <FluentDataGrid Items="@auction.Bids.AsQueryable()"
+                            RowClass="@(b => IsWinningBid(b) ? "winning-row" : null)"
+                            GridTemplateColumns="1fr 1fr 1fr"
+                            id="bids-grid">
+                <TemplateColumn Title="Bidder">
+                    @context.Bidder
+                </TemplateColumn>
+                <PropertyColumn Property="@(b => b.Amount)" Title="Bid" Format="N2" />
+                <TemplateColumn Title="Status">
+                    @if (IsWinningBid(context))
+                    {
+                        <FluentBadge Appearance="BadgeAppearance.Filled" Color="BadgeColor.Success">Winning bid</FluentBadge>
+                    }
+                    else if (context.Amount < auction.ReservePrice)
+                    {
+                        <FluentBadge Appearance="BadgeAppearance.Tint" Color="BadgeColor.Warning">Below reserve</FluentBadge>
+                    }
+                </TemplateColumn>
+            </FluentDataGrid>
+        }
     </FluentCard>
 
-    <FluentCard Padding="Padding.All4">
-        <div class="stack">
-            <h2>Résultat</h2>
-
-            @if (result is null)
-            {
-                <p id="no-result">Importez un fichier CSV pour calculer le résultat.</p>
-            }
-            else if (result.Winner is null)
-            {
-                <FluentMessageBar Intent="MessageBarIntent.Warning">
-                    Pas de gagnant : aucune offre n'atteint le prix de réserve (@result.ReservePrice.ToString("N2")).
-                </FluentMessageBar>
-            }
-            else
-            {
-                <p>Gagnant : <strong id="winner">@result.Winner</strong></p>
-                <p>Prix payé : <strong id="winning-price">@result.WinningPrice!.Value.ToString("N2")</strong></p>
-            }
+    <FluentCard Class="panel" Padding="Padding.All5">
+        <div class="panel-header">
+            <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" />
+            <h2>Result</h2>
         </div>
+
+        @if (result is null)
+        {
+            <div id="no-result" class="empty">
+                <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" />
+                <p>The result appears here once bids are loaded.</p>
+            </div>
+        }
+        else if (result.Winner is null)
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Warning">
+                No winner: no bid reaches the reserve price (@result.ReservePrice.ToString("N2")).
+            </FluentMessageBar>
+        }
+        else
+        {
+            <div class="tiles">
+                <div class="tile tile-winner">
+                    <span class="tile-label">Winner</span>
+                    <strong id="winner" class="tile-value">@result.Winner</strong>
+                </div>
+                <div class="tile">
+                    <span class="tile-label">Price paid</span>
+                    <strong id="winning-price" class="tile-value">@result.WinningPrice!.Value.ToString("N2")</strong>
+                </div>
+                <div class="tile">
+                    <span class="tile-label">Reserve price</span>
+                    <strong class="tile-value">@result.ReservePrice.ToString("N2")</strong>
+                </div>
+            </div>
+        }
     </FluentCard>
 </div>
 
@@ -93,6 +137,9 @@
     private bool loading = true;
     private bool busy;
 
+    // Display only: the winner's highest bid is the winning one (the API decides who wins).
+    private BidDto? winningBid;
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -102,11 +149,12 @@
             {
                 reservePrice = auction.ReservePrice;
                 result = await Api.GetResultAsync(auction.Id);
+                UpdateWinningBid();
             }
         }
         catch (HttpRequestException ex)
         {
-            errors = [$"Impossible de joindre l'API : {ex.Message}"];
+            errors = [$"Unable to reach the API: {ex.Message}"];
         }
         finally
         {
@@ -124,7 +172,7 @@
     }
 
     private void OnFileError(FluentInputFileErrorEventArgs error) =>
-        errors = [$"Fichier refusé : {error.ErrorMessage}"];
+        errors = [$"File rejected: {error.ErrorMessage}"];
 
     private Task GenerateSampleAsync() => RunAsync(() => Generator.GenerateAndSendAsync(reservePrice));
 
@@ -142,6 +190,7 @@
             {
                 auction = created;
                 result = await Api.GetResultAsync(created.Id);
+                UpdateWinningBid();
             }
             else
             {
@@ -150,11 +199,20 @@
         }
         catch (HttpRequestException ex)
         {
-            errors = [$"Impossible de joindre l'API : {ex.Message}"];
+            errors = [$"Unable to reach the API: {ex.Message}"];
         }
         finally
         {
             busy = false;
         }
     }
+
+    private void UpdateWinningBid() =>
+        winningBid = result?.Winner is { } winner
+            ? auction?.Bids
+                .Where(b => string.Equals(b.Bidder, winner, StringComparison.OrdinalIgnoreCase))
+                .MaxBy(b => b.Amount)
+            : null;
+
+    private bool IsWinningBid(BidDto bid) => ReferenceEquals(bid, winningBid);
 }
