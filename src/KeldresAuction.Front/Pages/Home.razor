@@ -5,18 +5,20 @@
 
 <h1>Keldres Auction</h1>
 
-@if (error is not null)
-{
-    <p role="alert">API error: @error</p>
-}
-else if (message is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <p id="api-message">@message</p>
-}
+<FluentCard Padding="Padding.All4">
+    @if (error is not null)
+    {
+        <p role="alert">API error: @error</p>
+    }
+    else if (message is null)
+    {
+        <FluentProgressBar />
+    }
+    else
+    {
+        <p id="api-message">@message</p>
+    }
+</FluentCard>
 
 @code {
     private string? message;
