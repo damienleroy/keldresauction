@@ -1,3 +1,4 @@
+using Ardalis.Result.AspNetCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.StaticFiles;
 
@@ -6,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Service defaults: OpenTelemetry (traces, metrics, logs), health checks, resilience.
 builder.AddServiceDefaults();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.AddDefaultResultConvention());
 builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
