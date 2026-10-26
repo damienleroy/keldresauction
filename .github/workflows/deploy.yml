@@ -1,0 +1,83 @@
+name: Integration Deploy KeldresAuction
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy keldresauction
+    runs-on: ubuntu-latest
+    environment: HomeTest
+    permissions:
+      contents: read
+
+    env:
+      SERVICE: keldresauction
+      HOST_PORT: "9093"
+      CONTAINER_PORT: "8080"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test
+        run: dotnet test KeldresAuction.slnx -c Release
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          SERVER_PORT="${{ vars.SERVER_PORT }}"
+          ssh-keyscan -p "${SERVER_PORT:-22}" -H "${{ vars.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t "keldresauction/${SERVICE}:latest" \
+            -t "keldresauction/${SERVICE}:${{ github.sha }}" \
+            -f Dockerfile \
+            .
+
+      - name: Transfer Docker image to server
+        run: |
+          SERVER_PORT="${{ vars.SERVER_PORT }}"
+          IMAGE_FILE="/tmp/keldresauction_${SERVICE}.tar.gz"
+          docker save "keldresauction/${SERVICE}:latest" | gzip > "$IMAGE_FILE"
+          scp -P "${SERVER_PORT:-22}" -i ~/.ssh/deploy_key "$IMAGE_FILE" "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}:/tmp/"
+          ssh -p "${SERVER_PORT:-22}" -i ~/.ssh/deploy_key "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" "gunzip -c /tmp/$(basename $IMAGE_FILE) | docker load && rm /tmp/$(basename $IMAGE_FILE)"
+          rm "$IMAGE_FILE"
+
+      - name: Create environment file
+        env:
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          ENV_FILE="/tmp/keldresauction_${SERVICE}.env"
+
+          echo "ASPNETCORE_ENVIRONMENT=Integration" > "$ENV_FILE"
+          echo "DOTNET_ENVIRONMENT=Integration" >> "$ENV_FILE"
+          echo "OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}" >> "$ENV_FILE"
+
+      - name: Deploy container on server
+        run: |
+          SERVER_PORT="${{ vars.SERVER_PORT }}"
+          DOCKER_NETWORK="${{ vars.DOCKER_NETWORK }}"
+          DOCKER_NETWORK="${DOCKER_NETWORK:-simpleapi_network}"
+          ENV_FILE="/tmp/keldresauction_${SERVICE}.env"
+
+          scp -P "${SERVER_PORT:-22}" \
+              -i ~/.ssh/deploy_key \
+              "$ENV_FILE" \
+              "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}:/tmp/keldresauction_${SERVICE}.env"
+
+          ssh -p "${SERVER_PORT:-22}" \
+              -i ~/.ssh/deploy_key \
+              "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" << ENDSSH
+          set -e
+          docker stop "${SERVICE}" || true
+          docker rm "${SERVICE}" || true
+          docker run -d --name "${SERVICE}" --network "${DOCKER_NETWORK}" --restart unless-stopped -p ${HOST_PORT}:${CONTAINER_PORT} --env-file "/tmp/keldresauction_${SERVICE}.env" "keldresauction/${SERVICE}:latest"
+          rm "/tmp/keldresauction_${SERVICE}.env"
+          ENDSSH
+
+          rm "$ENV_FILE"

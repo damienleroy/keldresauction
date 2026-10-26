@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "KeldresAuction.Api", "--launch-profile", "http"],
+      "port": 5100
+    },
+    {
+      "name": "front",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "KeldresAuction.Front", "--launch-profile", "http"],
+      "port": 5200
+    }
+  ]
+}

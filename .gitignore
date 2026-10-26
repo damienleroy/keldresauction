@@ -1,0 +1,10 @@
+.env
+*.user
+*.suo
+.vs/
+.vscode/
+bin/
+obj/
+TestResults/
+*.tar
+*.tar.gz

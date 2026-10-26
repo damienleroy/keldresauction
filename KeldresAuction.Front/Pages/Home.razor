@@ -1,0 +1,39 @@
+@page "/"
+@inject HttpClient Http
+
+<PageTitle>Keldres Auction</PageTitle>
+
+<h1>Keldres Auction</h1>
+
+@if (error is not null)
+{
+    <p role="alert">API error: @error</p>
+}
+else if (message is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <p id="api-message">@message</p>
+}
+
+@code {
+    private string? message;
+    private string? error;
+
+    private sealed record HelloResponse(string Message);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<HelloResponse>("api/hello");
+            message = response?.Message ?? string.Empty;
+        }
+        catch (HttpRequestException ex)
+        {
+            error = ex.Message;
+        }
+    }
+}
