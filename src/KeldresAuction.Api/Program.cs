@@ -75,6 +75,3 @@ app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = contentTypes })
 app.MapFallbackToFile("index.html");
 
 app.Run();
-
-// Exposed for WebApplicationFactory<Program> in the integration tests.
-public partial class Program;

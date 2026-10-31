@@ -4,7 +4,7 @@ Solution .NET 10 en deux parties, déployées dans **un seul container** :
 
 - `KeldresAuction.Api` : API ASP.NET Core (controllers + [Mediator](https://github.com/martinothamar/Mediator), alternative open source à MediatR, et [Ardalis.Result](https://github.com/ardalis/Result) pour le Result pattern traduit automatiquement en statuts HTTP). Données dans PostgreSQL via Entity Framework Core (migrations appliquées au démarrage). Telemetry OpenTelemetry (traces, métriques, logs) exportée en OTLP vers le collector (Tempo / Prometheus / Loki / Grafana), health checks `/health` (avec la base) et `/alive`.
 - `KeldresAuction.Front` : Blazor WebAssembly avec [Fluent UI Blazor v5](https://github.com/microsoft/fluentui-blazor) (les conventions d'usage sont dans `.github/skills/fluentui-blazor-usage`), il ne fait qu'appeler l'API. Une fois publié, il est servi par l'API depuis `wwwroot`.
-- `KeldresAuction.Api.Tests` : tests unitaires (domaine, parseur CSV) et tests d'intégration de l'API contre un vrai PostgreSQL lancé par Testcontainers (**Docker requis**).
+- `KeldresAuction.Api.Tests` : tests unitaires du domaine (règles de l'enchère au second prix).
 
 ## Enchère à pli fermé au second prix
 
@@ -42,7 +42,7 @@ docker compose down            # arrêt (ajouter -v pour supprimer aussi les don
 docker compose up -d postgres                # PostgreSQL local (port 5433)
 dotnet run --project src/KeldresAuction.Api    # http://localhost:5100
 dotnet run --project src/KeldresAuction.Front  # http://localhost:5200 (appelle l'API sur 5100, CORS ouvert en Development)
-dotnet test KeldresAuction.slnx                # nécessite Docker (Testcontainers)
+dotnet test KeldresAuction.slnx
 ```
 
 Nouvelle migration EF Core (l'outil `dotnet-ef` est dans le manifeste d'outils) :
@@ -66,4 +66,4 @@ docker run -p 9093:8080 -e "ConnectionStrings__keldresauction=Host=...;Database=
 ```
 
 - `deploy.ps1` : build, transfert SSH et `docker run` sur le serveur (variables `SERVER_HOST`, `SERVER_USER`, `SERVER_PORT`, `SERVER_SSH_KEY_PATH`, `CONNECTIONSTRING_KELDRESAUCTION`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `DOCKER_NETWORK`).
-- `.github/workflows/deploy.yml` : même chose via GitHub Actions (environnement `HomeTest`, secrets `SERVER_SSH_KEY` et `CONNECTIONSTRING_KELDRESAUCTION`, variables `SERVER_HOST`, `SERVER_USER`, `SERVER_PORT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `DOCKER_NETWORK`). Les tests (qui utilisent Docker) tournent avant le déploiement.
+- `.github/workflows/deploy.yml` : même chose via GitHub Actions (environnement `HomeTest`, secrets `SERVER_SSH_KEY` et `CONNECTIONSTRING_KELDRESAUCTION`, variables `SERVER_HOST`, `SERVER_USER`, `SERVER_PORT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `DOCKER_NETWORK`). Les tests tournent avant le déploiement.
