@@ -2,7 +2,7 @@
 
 Solution .NET 10 en deux parties, déployées dans **un seul container** :
 
-- `KeldresAuction.Api` : API ASP.NET Core (controllers + [Mediator](https://github.com/martinothamar/Mediator), alternative open source à MediatR, et [Ardalis.Result](https://github.com/ardalis/Result) pour le Result pattern traduit automatiquement en statuts HTTP). Données dans PostgreSQL via Entity Framework Core (migrations appliquées au démarrage). Telemetry OpenTelemetry (traces, métriques, logs) exportée en OTLP vers le collector (Tempo / Prometheus / Loki / Grafana), health checks `/health` (avec la base) et `/alive`.
+- `KeldresAuction.Api` : API ASP.NET Core (controllers, Swagger UI sur `/swagger` en Development, + [Mediator](https://github.com/martinothamar/Mediator), alternative open source à MediatR, et [Ardalis.Result](https://github.com/ardalis/Result) pour le Result pattern traduit automatiquement en statuts HTTP). Données dans PostgreSQL via Entity Framework Core (migrations appliquées au démarrage). Telemetry OpenTelemetry (traces, métriques, logs) exportée en OTLP vers le collector (Tempo / Prometheus / Loki / Grafana), health checks `/health` (avec la base) et `/alive`.
 - `KeldresAuction.Front` : Blazor WebAssembly avec [Fluent UI Blazor v5](https://github.com/microsoft/fluentui-blazor) (les conventions d'usage sont dans `.github/skills/fluentui-blazor-usage`), il ne fait qu'appeler l'API. Une fois publié, il est servi par l'API depuis `wwwroot`.
 - `KeldresAuction.Api.Tests` : tests unitaires du domaine (règles de l'enchère au second prix).
 
