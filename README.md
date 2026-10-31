@@ -45,10 +45,9 @@ dotnet run --project src/KeldresAuction.Front  # http://localhost:5200 (appelle 
 dotnet test KeldresAuction.slnx
 ```
 
-Nouvelle migration EF Core (l'outil `dotnet-ef` est dans le manifeste d'outils) :
+Nouvelle migration EF Core (nécessite l'outil global : `dotnet tool install --global dotnet-ef`) :
 
 ```bash
-dotnet tool restore
 dotnet ef migrations add NomDeLaMigration --project src/KeldresAuction.Api --output-dir Infrastructure/Persistence/Migrations
 ```
 
