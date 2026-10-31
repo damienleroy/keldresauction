@@ -16,9 +16,7 @@ public sealed class AuctionConfiguration : IEntityTypeConfiguration<Auction>
 
         builder.HasMany(a => a.Bids)
             .WithOne()
-            .HasForeignKey("AuctionId")
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.Navigation(a => a.Bids).UsePropertyAccessMode(PropertyAccessMode.Field);
+            .HasForeignKey("AuctionId");
     }
 }
 

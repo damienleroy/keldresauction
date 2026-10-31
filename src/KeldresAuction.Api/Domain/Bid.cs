@@ -22,8 +22,5 @@ public sealed class Bid
     // Order in which the bid was submitted; used to break ties between equal bids.
     public int Sequence { get; private set; }
 
-    public bool IsFrom(string bidder) => BidderNameComparer.Equals(Bidder, bidder);
-
-    // Bidder names are compared ignoring case: "Alice" and "alice" are the same bidder.
-    internal static StringComparer BidderNameComparer => StringComparer.OrdinalIgnoreCase;
+    public bool IsFrom(string bidder) => StringComparer.OrdinalIgnoreCase.Equals(Bidder, bidder);
 }

@@ -1,7 +1,7 @@
 using KeldresAuction.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace KeldresAuction.Api.Infrastructure.Persistence;
+namespace KeldresAuction.Api.Infrastructure.Persistence.Repositories;
 
 public sealed class AuctionRepository(AuctionDbContext dbContext) : IAuctionRepository
 {
