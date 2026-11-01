@@ -1,6 +1,14 @@
+using System.Globalization;
 using Ardalis.Result.AspNetCore;
-using Microsoft.AspNetCore.HttpOverrides;
+using KeldresAuction.Api.Domain;
+using KeldresAuction.Api.Infrastructure.Persistence;
+using KeldresAuction.Api.Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
+
+// The API speaks the invariant culture ('.' decimal separator), whatever the host machine's culture is.
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,12 +19,12 @@ builder.Services.AddControllers(options => options.AddDefaultResultConvention())
 builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
-});
+
+builder.Services.AddDbContext<AuctionDbContext>((serviceProvider, options) => options
+    .UseNpgsql(serviceProvider.GetRequiredService<IConfiguration>().GetConnectionString("keldresauction"))
+    .UseSnakeCaseNamingConvention());
+builder.Services.AddScoped<IAuctionRepository, AuctionRepository>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // In development the Blazor front runs on its own dev server, so allow its origin.
 const string DevCorsPolicy = "DevFront";
@@ -27,13 +35,20 @@ builder.Services.AddCors(options => options.AddPolicy(DevCorsPolicy, policy => p
 
 var app = builder.Build();
 
+// Apply pending EF Core migrations at startup.
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    await scope.ServiceProvider.GetRequiredService<AuctionDbContext>().Database.MigrateAsync();
+}
+
 app.UseExceptionHandler();
 app.UseForwardedHeaders();
 app.MapDefaultEndpoints();
 
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsProduction())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "KeldresAuction API v1"));
     app.UseCors(DevCorsPolicy);
 }
 
@@ -51,6 +66,3 @@ app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = contentTypes })
 app.MapFallbackToFile("index.html");
 
 app.Run();
-
-// Exposed for WebApplicationFactory<Program> in the integration tests.
-public partial class Program;

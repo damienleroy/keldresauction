@@ -1,41 +1,218 @@
 @page "/"
-@inject HttpClient Http
+@using KeldresAuction.Front.Models
+@using KeldresAuction.Front.Services
+@inject AuctionApiClient Api
+@inject AuctionCsvGenerator Generator
 
 <PageTitle>Keldres Auction</PageTitle>
 
-<h1>Keldres Auction</h1>
+<div class="page">
+    <header class="hero">
+        <h1>Sealed-bid second-price auction</h1>
+        <p class="lead">
+            The highest bid at or above the reserve price wins, but the winner pays the highest qualifying bid
+            placed by <em>another</em> bidder, or the reserve price when there is none.
+        </p>
+    </header>
 
-<FluentCard Padding="Padding.All4">
-    @if (error is not null)
-    {
-        <p role="alert">API error: @error</p>
-    }
-    else if (message is null)
-    {
-        <FluentProgressBar />
-    }
-    else
-    {
-        <p id="api-message">@message</p>
-    }
-</FluentCard>
+    <FluentCard Class="panel" Padding="Padding.All5">
+        <div class="panel-header">
+            <FluentIcon Value="@(new Icons.Regular.Size24.DocumentTable())" />
+            <h2>Bids</h2>
+        </div>
+
+        <div class="controls">
+            <FluentNumberInput TValue="decimal" @bind-Value="reservePrice" Label="Reserve price" Min="0" Step="1" />
+            <FluentButton Appearance="ButtonAppearance.Outline"
+                          IconStart="@(new Icons.Regular.Size20.Sparkle())"
+                          Disabled="@busy"
+                          OnClick="@GenerateSampleAsync">
+                Generate a sample
+            </FluentButton>
+        </div>
+
+        <FluentInputFile Mode="InputFileMode.Stream"
+                         Accept=".csv,text/csv"
+                         MaximumFileSize="@MaxCsvBytes"
+                         AnchorId="csv-browse"
+                         Class="dropzone"
+                         Height="110px"
+                         Disabled="@busy"
+                         OnFileUploaded="@OnFileUploadedAsync"
+                         OnFileError="@OnFileError">
+            <label for="csv-browse">Drop a CSV file here or <u>browse</u></label>
+        </FluentInputFile>
+
+        <p class="hint">
+            One bidder per line: the name, then that bidder's bids, separated by commas
+            (e.g. <code>Alice,110,130</code>). Use <code>.</code> as the decimal separator.
+        </p>
+
+        @foreach (var error in errors)
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Error">@error</FluentMessageBar>
+        }
+
+        @if (loading)
+        {
+            <FluentProgressBar />
+        }
+        else if (auction is null)
+        {
+            <div id="no-bids" class="empty">
+                <FluentIcon Value="@(new Icons.Regular.Size24.DocumentTable())" />
+                <p>No bids yet. Upload a CSV file or generate a sample to get started.</p>
+            </div>
+        }
+        else
+        {
+            <FluentDataGrid Items="@auction.Bids.AsQueryable()"
+                            RowClass="@(b => IsWinningBid(b) ? "winning-row" : null)"
+                            GridTemplateColumns="1fr 1fr 1fr"
+                            id="bids-grid">
+                <TemplateColumn Title="Bidder">
+                    @context.Bidder
+                </TemplateColumn>
+                <PropertyColumn Property="@(b => b.Amount)" Title="Bid" Format="N2" />
+                <TemplateColumn Title="Status">
+                    @if (IsWinningBid(context))
+                    {
+                        <FluentBadge Appearance="BadgeAppearance.Filled" Color="BadgeColor.Success">Winning bid</FluentBadge>
+                    }
+                    else if (context.Amount < auction.ReservePrice)
+                    {
+                        <FluentBadge Appearance="BadgeAppearance.Tint" Color="BadgeColor.Warning">Below reserve</FluentBadge>
+                    }
+                </TemplateColumn>
+            </FluentDataGrid>
+        }
+    </FluentCard>
+
+    <FluentCard Class="panel" Padding="Padding.All5">
+        <div class="panel-header">
+            <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" />
+            <h2>Result</h2>
+        </div>
+
+        @if (result is null)
+        {
+            <div id="no-result" class="empty">
+                <FluentIcon Value="@(new Icons.Regular.Size24.Trophy())" />
+                <p>The result appears here once bids are loaded.</p>
+            </div>
+        }
+        else if (result.Winner is null)
+        {
+            <FluentMessageBar Intent="MessageBarIntent.Warning">
+                No winner: no bid reaches the reserve price (@result.ReservePrice.ToString("N2")).
+            </FluentMessageBar>
+        }
+        else
+        {
+            <div class="tiles">
+                <div class="tile tile-winner">
+                    <span class="tile-label">Winner</span>
+                    <strong id="winner" class="tile-value">@result.Winner</strong>
+                </div>
+                <div class="tile">
+                    <span class="tile-label">Price paid</span>
+                    <strong id="winning-price" class="tile-value">@result.WinningPrice!.Value.ToString("N2")</strong>
+                </div>
+                <div class="tile">
+                    <span class="tile-label">Reserve price</span>
+                    <strong class="tile-value">@result.ReservePrice.ToString("N2")</strong>
+                </div>
+            </div>
+        }
+    </FluentCard>
+</div>
 
 @code {
-    private string? message;
-    private string? error;
+    private const long MaxCsvBytes = 1024 * 1024;
 
-    private sealed record HelloResponse(string Message);
+    private decimal reservePrice = 100;
+    private AuctionDto? auction;
+    private AuctionResultDto? result;
+    private IReadOnlyList<string> errors = [];
+    private bool loading = true;
+    private bool busy;
+
+    // Display only: the winner's highest bid is the winning one (the API decides who wins).
+    private BidDto? winningBid;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<HelloResponse>("api/hello");
-            message = response?.Message ?? string.Empty;
+            auction = await Api.GetLatestAsync();
+            if (auction is not null)
+            {
+                reservePrice = auction.ReservePrice;
+                result = await Api.GetResultAsync(auction.Id);
+                UpdateWinningBid();
+            }
         }
         catch (HttpRequestException ex)
         {
-            error = ex.Message;
+            errors = [$"Unable to reach the API: {ex.Message}"];
+        }
+        finally
+        {
+            loading = false;
         }
     }
+
+    private async Task OnFileUploadedAsync(FluentInputFileEventArgs file)
+    {
+        // The stream is only valid during the callback, so read it right away.
+        using var reader = new StreamReader(file.Stream!);
+        var csv = await reader.ReadToEndAsync();
+
+        await RunAsync(() => Api.UploadCsvAsync(csv, reservePrice));
+    }
+
+    private void OnFileError(FluentInputFileErrorEventArgs error) =>
+        errors = [$"File rejected: {error.ErrorMessage}"];
+
+    private Task GenerateSampleAsync() => RunAsync(() => Generator.GenerateAndSendAsync(reservePrice));
+
+    // Sends a CSV to the API, then shows the created auction and its result.
+    private async Task RunAsync(Func<Task<UploadOutcome>> send)
+    {
+        busy = true;
+        errors = [];
+        StateHasChanged();
+
+        try
+        {
+            var outcome = await send();
+            if (outcome.Auction is { } created)
+            {
+                auction = created;
+                result = await Api.GetResultAsync(created.Id);
+                UpdateWinningBid();
+            }
+            else
+            {
+                errors = outcome.Errors;
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            errors = [$"Unable to reach the API: {ex.Message}"];
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void UpdateWinningBid() =>
+        winningBid = result?.Winner is { } winner
+            ? auction?.Bids
+                .Where(b => string.Equals(b.Bidder, winner, StringComparison.OrdinalIgnoreCase))
+                .MaxBy(b => b.Amount)
+            : null;
+
+    private bool IsWinningBid(BidDto bid) => ReferenceEquals(bid, winningBid);
 }

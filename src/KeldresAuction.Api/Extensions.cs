@@ -18,19 +18,7 @@ public static class Extensions
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
         builder.ConfigureOpenTelemetry();
-
         builder.AddDefaultHealthChecks();
-
-        builder.Services.AddServiceDiscovery();
-
-        builder.Services.ConfigureHttpClientDefaults(http =>
-        {
-            // Turn on resilience by default
-            http.AddStandardResilienceHandler();
-
-            // Turn on service discovery by default
-            http.AddServiceDiscovery();
-        });
 
         return builder;
     }
@@ -55,12 +43,14 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
+                    .AddMeter("Npgsql")
                     .AddProcessInstrumentation()
                     .AddRuntimeInstrumentation();
             })
             .WithTracing(tracing =>
             {
-                tracing.AddSource(builder.Environment.ApplicationName)
+                // "Npgsql" is the ActivitySource emitted natively by the PostgreSQL driver (EF Core queries).
+                tracing.AddSource(builder.Environment.ApplicationName, "Npgsql")
                     .AddAspNetCoreInstrumentation(options =>
                         // Exclude health check requests from tracing
                         options.Filter = context =>

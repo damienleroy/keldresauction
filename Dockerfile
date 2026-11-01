@@ -16,6 +16,8 @@ RUN dotnet publish src/KeldresAuction.Front/KeldresAuction.Front.csproj \
 
 # One container: the API host also serves the published Blazor WebAssembly front.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# Npgsql loads libgssapi_krb5 (GSS/Kerberos) when connecting to PostgreSQL; it is not in the base image.
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/publish .
 COPY --from=build /app/front/wwwroot ./wwwroot
