@@ -40,7 +40,8 @@
                          Disabled="@busy"
                          OnFileUploaded="@OnFileUploadedAsync"
                          OnFileError="@OnFileError">
-            <label for="csv-browse">Drop a CSV file here or <u>browse</u></label>
+            @* AnchorId points to this element: the component opens the file picker when it is clicked. *@
+            <span>Drop a CSV file here or <button type="button" id="csv-browse" class="browse-link" disabled="@busy">browse</button></span>
         </FluentInputFile>
 
         <p class="hint">
@@ -67,7 +68,7 @@
         else
         {
             <FluentDataGrid Items="@auction.Bids.AsQueryable()"
-                            RowClass="@(b => IsWinningBid(b) ? "winning-row" : null)"
+                            RowClass="@GetRowClass"
                             GridTemplateColumns="1fr 1fr 1fr"
                             id="bids-grid">
                 <TemplateColumn Title="Bidder">
@@ -78,6 +79,10 @@
                     @if (IsWinningBid(context))
                     {
                         <FluentBadge Appearance="BadgeAppearance.Filled" Color="BadgeColor.Success">Winning bid</FluentBadge>
+                    }
+                    else if (IsPriceBid(context))
+                    {
+                        <FluentBadge Appearance="BadgeAppearance.Filled" Color="BadgeColor.Brand">Sets the price</FluentBadge>
                     }
                     else if (context.Amount < auction.ReservePrice)
                     {
@@ -137,8 +142,11 @@
     private bool loading = true;
     private bool busy;
 
-    // Display only: the winner's highest bid is the winning one (the API decides who wins).
+    // Display only (the API decides who wins and at which price): the winner's highest bid is the
+    // winning one, and the price comes from the first bid of another bidder with that exact amount.
+    // There is no price-setting bid when the price is the reserve price.
     private BidDto? winningBid;
+    private BidDto? priceBid;
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,7 +157,7 @@
             {
                 reservePrice = auction.ReservePrice;
                 result = await Api.GetResultAsync(auction.Id);
-                UpdateWinningBid();
+                UpdateHighlightedBids();
             }
         }
         catch (HttpRequestException ex)
@@ -190,7 +198,7 @@
             {
                 auction = created;
                 result = await Api.GetResultAsync(created.Id);
-                UpdateWinningBid();
+                UpdateHighlightedBids();
             }
             else
             {
@@ -207,12 +215,28 @@
         }
     }
 
-    private void UpdateWinningBid() =>
-        winningBid = result?.Winner is { } winner
-            ? auction?.Bids
-                .Where(b => string.Equals(b.Bidder, winner, StringComparison.OrdinalIgnoreCase))
-                .MaxBy(b => b.Amount)
-            : null;
+    private void UpdateHighlightedBids()
+    {
+        winningBid = null;
+        priceBid = null;
+
+        if (auction is null || result is not { Winner: { } winner, WinningPrice: { } price })
+            return;
+
+        winningBid = auction.Bids
+            .Where(b => IsFrom(b, winner))
+            .MaxBy(b => b.Amount);
+        priceBid = auction.Bids
+            .FirstOrDefault(b => !IsFrom(b, winner) && b.Amount == price);
+    }
+
+    private static bool IsFrom(BidDto bid, string bidder) =>
+        string.Equals(bid.Bidder, bidder, StringComparison.OrdinalIgnoreCase);
 
     private bool IsWinningBid(BidDto bid) => ReferenceEquals(bid, winningBid);
+
+    private bool IsPriceBid(BidDto bid) => ReferenceEquals(bid, priceBid);
+
+    private string? GetRowClass(BidDto bid) =>
+        IsWinningBid(bid) ? "winning-row" : IsPriceBid(bid) ? "price-row" : null;
 }
