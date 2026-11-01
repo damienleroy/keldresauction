@@ -78,6 +78,21 @@ html, body {
     width: 100%;
 }
 
+.browse-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--colorBrandForeground1);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.browse-link:disabled {
+    color: var(--colorNeutralForegroundDisabled);
+    cursor: default;
+}
+
 .hint {
     margin: 0;
     color: var(--colorNeutralForeground3);
@@ -110,6 +125,12 @@ html, body {
 
 .winning-row {
     background: var(--colorPaletteGreenBackground1);
+    font-weight: var(--fontWeightSemibold);
+}
+
+/* The bid whose amount sets the price paid by the winner. */
+.price-row {
+    background: var(--colorBrandBackground2);
     font-weight: var(--fontWeightSemibold);
 }
 
