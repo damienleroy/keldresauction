@@ -85,7 +85,6 @@ namespace KeldresAuction.Api.Infrastructure.Persistence.Migrations
                     b.HasOne("KeldresAuction.Api.Domain.Auction", null)
                         .WithMany("Bids")
                         .HasForeignKey("AuctionId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_bids_auctions_auction_id");
                 });
 
