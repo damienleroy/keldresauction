@@ -28,6 +28,7 @@ services:
       ConnectionStrings__keldresauction: Host=postgres;Database=keldresauction;Username=postgres;Password=postgres
       # Optional: export traces, metrics and logs to an OpenTelemetry collector.
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      ASPNETCORE_ENVIRONMENT: Development
     ports:
       - "9093:8080"
 
